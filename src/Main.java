@@ -2,8 +2,7 @@ import model.Job;
 import producer.Producer;
 import worker.Worker;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -14,36 +13,35 @@ public class Main {
         BlockingQueue<Job> queue = new LinkedBlockingQueue<>(10);
         Producer producer1 = new Producer(queue, 10);
         Producer producer2 = new Producer(queue, 10);
-
         Worker worker1 = new Worker(queue);
         Worker worker2 = new Worker(queue);
 
-//        ArrayList<Thread> flow = new ArrayList<>();
-        Thread thread1 = new Thread(worker1, "worker1");
-        Thread thread2 = new Thread(worker2, "worker2");
-        Thread thread3 = new Thread(producer1, "producer1");
-        Thread thread4 = new Thread(producer2, "producer2");
-        thread3.start();
-        thread4.start();
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        pool.submit(worker1);
+        pool.submit(worker2);
 
-        thread2.start();
-        thread1.start();
-
-
-        thread3.join();
-
-
-        thread4.join();
-
-
-        queue.put(Job.poisonPill());
-
+        Future<?> f1 = pool.submit(producer1);
+        Future<?> f2 = pool.submit(producer2);
+        try {
+            f1.get();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            f2.get();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
 
         queue.put(Job.poisonPill());
+        queue.put(Job.poisonPill());
+
+        pool.shutdown();
+        pool.awaitTermination(5, TimeUnit.SECONDS);
 
 
-        thread1.join();
-        thread2.join();
+        System.out.println("System shutdown cleanly.");
+
 
 //        for (Thread t : flow) {
 //            try {
