@@ -1,5 +1,7 @@
 import model.Job;
 import producer.Producer;
+import task.FactorialTask;
+import task.SquareTask;
 import worker.Worker;
 
 import java.util.concurrent.*;
@@ -8,36 +10,58 @@ import java.util.concurrent.*;
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, ExecutionException, TimeoutException {
 
         BlockingQueue<Job> queue = new LinkedBlockingQueue<>(10);
-        Producer producer1 = new Producer(queue, 10);
-        Producer producer2 = new Producer(queue, 10);
-        Worker worker1 = new Worker(queue);
-        Worker worker2 = new Worker(queue);
+        ExecutorService pool = Executors.newFixedThreadPool(3);
 
-        ExecutorService pool = Executors.newFixedThreadPool(4);
-        pool.submit(worker1);
-        pool.submit(worker2);
 
-        Future<?> f1 = pool.submit(producer1);
-        Future<?> f2 = pool.submit(producer2);
-        try {
-            f1.get();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            f2.get();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        Future<Long> f1 = pool.submit(new FactorialTask(5));
+        Future<Long> f2 = pool.submit(new FactorialTask(3));
+        Future<Long> f3 = pool.submit(new FactorialTask(4));
 
-        queue.put(Job.poisonPill());
-        queue.put(Job.poisonPill());
 
-        pool.shutdown();
-        pool.awaitTermination(5, TimeUnit.SECONDS);
+        System.out.println("Tasks submitted...");
+
+        Long r1 = f1.get();
+        Long r2 = f2.get();
+        Long r3 = f3.get();
+
+        System.out.println("Results:");
+        System.out.println("5! = " + r1);
+        System.out.println("4! = " + r2);
+        System.out.println("3! = " + r3);
+
+
+//        Future<Integer> f1 = pool.submit(new SquareTask(4));
+//        Producer producer1 = new Producer(queue, 10);
+//        Producer producer2 = new Producer(queue, 10);
+//        Worker worker1 = new Worker(queue);
+//        Worker worker2 = new Worker(queue);
+//
+//
+//
+//        pool.submit(worker1);
+//        pool.submit(worker2);
+//
+//        Future<?> f1 = pool.submit(producer1);
+//        Future<?> f2 = pool.submit(producer2);
+//        try {
+//            f1.get();
+//        } catch (ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
+//        try {
+//            f2.get();
+//        } catch (ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        queue.put(Job.poisonPill());
+//        queue.put(Job.poisonPill());
+//
+//        pool.shutdown();
+//        pool.awaitTermination(5, TimeUnit.SECONDS);
 
 
         System.out.println("System shutdown cleanly.");
@@ -86,6 +110,6 @@ public class Main {
 //
 //        System.out.println("final counter = " + sharedCounter.getValue());
 //        System.out.println("Expected = 5000000 ");
-
+        pool.shutdown();
     }
 }
